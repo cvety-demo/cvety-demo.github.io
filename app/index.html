@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Цветочная лавка · мини-приложение (демо)</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--bg:var(--tg-theme-bg-color,#fbf7f4);--fg:var(--tg-theme-text-color,#2b2225);--muted:var(--tg-theme-hint-color,#8a7d81);
+--card:var(--tg-theme-secondary-bg-color,#fff);--accent:var(--tg-theme-button-color,#c2185b);--accent-fg:var(--tg-theme-button-text-color,#fff);--line:rgba(127,127,127,.18)}
+@media (prefers-color-scheme:dark){:root:not([data-tg]){--bg:#1d1719;--fg:#f3ecee;--muted:#a8999e;--card:#2a2225;--accent:#ec7aa0;--accent-fg:#1d1719}}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:0 14px 110px;-webkit-tap-highlight-color:transparent}
+.demo{margin:10px 0 0;padding:8px 12px;border-radius:12px;background:var(--card);color:var(--muted);font-size:12px}
+header{padding:14px 0 6px}h1{font-size:22px;margin:0}header p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:10px 0;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:999px;padding:7px 14px;font:inherit;font-size:14px}
+.chip.on{background:var(--accent);color:var(--accent-fg);border-color:transparent}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.card{background:var(--card);border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
+.pic{aspect-ratio:1/1;display:grid;place-items:center;font-size:56px}
+.body{padding:10px;display:flex;flex-direction:column;gap:4px;flex:1}
+.body b{font-size:14px}.body small{color:var(--muted);font-size:12px}
+.row{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:6px;gap:6px}
+.price{font-weight:600}
+.add{border:0;background:var(--accent);color:var(--accent-fg);border-radius:10px;padding:7px 12px;font:inherit;font-size:14px}
+.qty{display:flex;align-items:center;gap:8px}.qty button{width:30px;height:30px;border-radius:9px;border:0;background:var(--accent);color:var(--accent-fg);font-size:18px;line-height:1}
+.sheet{position:fixed;inset:0;background:var(--bg);overflow:auto;padding:14px 14px 120px;display:none}
+.sheet.on{display:block}
+.sheet h2{font-size:20px;margin:6px 0 12px}
+.line{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)}
+.total{display:flex;justify-content:space-between;font-weight:700;padding:12px 0}
+label{display:block;margin:14px 0 6px;font-size:13px;color:var(--muted)}
+.seg{display:flex;gap:8px;flex-wrap:wrap}.seg button{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:10px;padding:8px 12px;font:inherit}
+.seg button.on{background:var(--accent);color:var(--accent-fg);border-color:transparent}
+input,textarea{width:100%;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:10px;padding:10px;font:inherit}
+textarea{min-height:70px;resize:vertical}
+.back{border:0;background:none;color:var(--accent);font:inherit;padding:4px 0}
+.err{color:#e5484d;font-size:13px;min-height:18px;margin-top:8px}
+.fab{position:fixed;left:14px;right:14px;bottom:14px;border:0;border-radius:14px;padding:14px;background:var(--accent);color:var(--accent-fg);font:inherit;font-weight:600;font-size:16px;display:none}
+.tg .fab{display:none!important}
+.done{text-align:center;padding:40px 10px}.done div{font-size:56px}
+pre{white-space:pre-wrap;background:var(--card);border-radius:12px;padding:12px;font:13px/1.4 system-ui}
+</style>
+</head>
+<body>
+<div class="demo">Демо мини-приложения. Магазин, букеты и цены — для примера.</div>
+<header><h1>Цветочная лавка</h1><p>Выберите букеты — оформим заказ в пару касаний</p></header>
+<div class="chips" id="chips"></div>
+<div class="grid" id="grid"></div>
+
+<section class="sheet" id="cart">
+  <button class="back" id="toShop">← В каталог</button>
+  <h2>Оформление заказа</h2>
+  <div id="lines"></div>
+  <div class="total"><span>Итого</span><span id="sum"></span></div>
+  <label>Когда нужен букет</label>
+  <div class="seg" id="when"></div>
+  <label>Получение</label>
+  <div class="seg" id="how"></div>
+  <div id="addrBox"><label for="addr">Адрес доставки</label><input id="addr" placeholder="Улица, дом, квартира"></div>
+  <label for="phone">Телефон</label><input id="phone" type="tel" inputmode="tel" placeholder="+7 900 000-00-00">
+  <label for="comment">Пожелания, текст открытки</label><textarea id="comment" placeholder="Необязательно"></textarea>
+  <div class="err" id="err"></div>
+</section>
+
+<section class="sheet" id="done"><div class="done"><div>🌸</div><h2>Спасибо!</h2><p>Заказ отправлен. Флорист свяжется с вами по телефону.</p><pre id="preview" hidden></pre></div></section>
+
+<button class="fab" id="fab"></button>
+
+<script>
+const CATS=["Все","Розы","Сборные","В коробке"];
+const ITEMS=[
+ {id:1,cat:"Розы",t:"15 роз",d:"Одного цвета, крафт",p:3500,e:"🌹",g:["#f8c9d4","#e05780"]},
+ {id:2,cat:"Розы",t:"51 роза",d:"Большой букет",p:9900,e:"🌹",g:["#fbe1e6","#b5223f"]},
+ {id:3,cat:"Сборные",t:"Сборный букет",d:"Сезонные цветы",p:2800,e:"💐",g:["#fde8c8","#f2a65a"]},
+ {id:4,cat:"Сборные",t:"Хризантемы",d:"Стоят долго",p:1900,e:"🌼",g:["#fff3c4","#e9c13b"]},
+ {id:5,cat:"В коробке",t:"Цветы в коробке",d:"Шляпная коробка",p:4500,e:"🎁",g:["#e7dcf7","#8e6cc8"]},
+ {id:6,cat:"В коробке",t:"Мини-бокс",d:"Комплимент",p:1500,e:"🌷",g:["#d9f1e4","#4fa77a"]}];
+const WHEN=["Сегодня","Завтра","Другая дата"], HOW=["Доставка","Самовывоз"];
+const tg=window.Telegram&&Telegram.WebApp&&Telegram.WebApp.initData?Telegram.WebApp:null;
+const cart={}; let cat="Все", when=WHEN[0], how=HOW[0];
+const $=id=>document.getElementById(id), rub=n=>n.toLocaleString("ru-RU")+" ₽";
+if(tg){document.documentElement.setAttribute("data-tg","");document.body.classList.add("tg");tg.ready();tg.expand();}
+
+function chips(){$("chips").innerHTML=CATS.map(c=>`<button class="chip${c===cat?" on":""}" data-c="${c}">${c}</button>`).join("");}
+function grid(){$("grid").innerHTML=ITEMS.filter(i=>cat==="Все"||i.cat===cat).map(i=>{const q=cart[i.id]||0;
+ return `<article class="card"><div class="pic" style="background:linear-gradient(150deg,${i.g[0]},${i.g[1]})">${i.e}</div>
+ <div class="body"><b>${i.t}</b><small>${i.d}</small><div class="row"><span class="price">${rub(i.p)}</span>
+ ${q?`<span class="qty"><button data-m="${i.id}">−</button>${q}<button data-p="${i.id}">+</button></span>`:`<button class="add" data-p="${i.id}">В корзину</button>`}</div></div></article>`}).join("");}
+const count=()=>Object.values(cart).reduce((a,b)=>a+b,0), total=()=>ITEMS.reduce((s,i)=>s+(cart[i.id]||0)*i.p,0);
+let mode="shop";
+function mainBtn(){const n=count(); const txt=mode==="shop"?`Корзина · ${n} · ${rub(total())}`:`Оформить заказ · ${rub(total())}`;
+ if(tg){ if(n){tg.MainButton.setText(txt);tg.MainButton.show();} else tg.MainButton.hide(); }
+ else{const f=$("fab"); f.textContent=txt; f.style.display=n&&mode!=="done"?"block":"none";}}
+function seg(id,list,val,set){$(id).innerHTML=list.map(x=>`<button class="${x===val?"on":""}" data-v="${x}">${x}</button>`).join("");
+ $(id).onclick=e=>{const v=e.target.dataset.v; if(!v)return; set(v); seg(id,list,v,set); $("addrBox").style.display=how==="Доставка"?"block":"none"; tg&&tg.HapticFeedback.selectionChanged();};}
+function openCart(){mode="cart";$("cart").classList.add("on");
+ $("lines").innerHTML=ITEMS.filter(i=>cart[i.id]).map(i=>`<div class="line"><span>${i.e} ${i.t} × ${cart[i.id]}</span><span>${rub(i.p*cart[i.id])}</span></div>`).join("");
+ $("sum").textContent=rub(total()); seg("when",WHEN,when,v=>when=v); seg("how",HOW,how,v=>how=v);
+ $("addrBox").style.display=how==="Доставка"?"block":"none"; if(tg){tg.BackButton.show();} mainBtn(); window.scrollTo(0,0);}
+function closeCart(){mode="shop";$("cart").classList.remove("on");tg&&tg.BackButton.hide();grid();mainBtn();}
+function submit(){const phone=$("phone").value.trim(), addr=$("addr").value.trim();
+ if(phone.replace(/\D/g,"").length<10){$("err").textContent="Укажите телефон, чтобы флорист мог связаться.";return;}
+ if(how==="Доставка"&&!addr){$("err").textContent="Укажите адрес доставки.";return;}
+ $("err").textContent="";
+ const order={items:ITEMS.filter(i=>cart[i.id]).map(i=>({t:i.t,q:cart[i.id],p:i.p})),total:total(),when,how,addr:how==="Доставка"?addr:"",phone,comment:$("comment").value.trim()};
+ if(tg){tg.sendData(JSON.stringify(order));return;}
+ mode="done";$("cart").classList.remove("on");$("done").classList.add("on");mainBtn();
+ const p=$("preview");p.hidden=false;p.textContent="Демо: так заявка придёт владельцу\n\n"+order.items.map(i=>`${i.t} × ${i.q}`).join("\n")+`\nИтого: ${rub(order.total)}\nКогда: ${when}\nПолучение: ${how}${order.addr?"\nАдрес: "+order.addr:""}\nТелефон: ${phone}${order.comment?"\nКомментарий: "+order.comment:""}`;}
+document.addEventListener("click",e=>{const t=e.target;
+ if(t.dataset.c){cat=t.dataset.c;chips();grid();}
+ if(t.dataset.p){cart[t.dataset.p]=(cart[t.dataset.p]||0)+1;grid();mainBtn();tg&&tg.HapticFeedback.impactOccurred("light");}
+ if(t.dataset.m){cart[t.dataset.m]--; if(!cart[t.dataset.m])delete cart[t.dataset.m]; grid();mainBtn();}});
+$("toShop").onclick=closeCart;
+const onMain=()=>mode==="shop"?openCart():submit();
+$("fab").onclick=onMain; if(tg){tg.MainButton.onClick(onMain);tg.BackButton.onClick(closeCart);}
+chips();grid();mainBtn();
+</script>
+</body>
+</html>
